@@ -1,0 +1,143 @@
+{% extends 'dashboard/manager/base.html' %}
+
+{% block title %}Members - {{ club.name }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="page-header">
+    <h1 class="page-title">Members</h1>
+    <p class="page-subtitle">Manage membership requests and club members</p>
+</div>
+
+<!-- Pending Requests -->
+{% if pending %}
+<section class="card" style="margin-bottom: 2rem;" aria-labelledby="pending-heading">
+    <div class="card-header">
+        <h2 id="pending-heading" class="card-title">
+            Pending Requests
+            <span class="status-badge pending" style="margin-left: 0.5rem;">{{ pending.count }}</span>
+        </h2>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Requested</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for membership in pending %}
+                        <tr>
+                            <td>
+                                <strong>{{ membership.user.get_full_name|default:membership.user.username }}</strong>
+                            </td>
+                            <td>{{ membership.user.email }}</td>
+                            <td>{{ membership.requested_at|date:"M d, Y g:i A" }}</td>
+                            <td>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <form method="post" action="{% url 'dashboard:manager_membership_approve' membership.pk %}" style="margin: 0;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                                    </form>
+                                    <form method="post" action="{% url 'dashboard:manager_membership_reject' membership.pk %}" style="margin: 0;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="note" value="">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">Reject</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Approved Members -->
+<section class="card" style="margin-bottom: 2rem;" aria-labelledby="members-heading">
+    <div class="card-header">
+        <h2 id="members-heading" class="card-title">
+            Club Members
+            <span class="status-badge approved" style="margin-left: 0.5rem;">{{ approved.count }}</span>
+        </h2>
+    </div>
+    <div class="card-body">
+        {% if approved %}
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Member Since</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for membership in approved %}
+                            <tr>
+                                <td>
+                                    <strong>{{ membership.user.get_full_name|default:membership.user.username }}</strong>
+                                </td>
+                                <td>{{ membership.user.email }}</td>
+                                <td>{{ membership.reviewed_at|date:"M d, Y"|default:membership.requested_at|date:"M d, Y" }}</td>
+                                <td>
+                                    <form method="post" 
+                                          action="{% url 'dashboard:manager_membership_remove' membership.pk %}"
+                                          onsubmit="return confirm('Remove {{ membership.user.username }} from the club?');"
+                                          style="margin: 0;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p style="color: var(--text-muted); text-align: center; padding: 2rem 0;">
+                No members yet. Members will appear here once you approve membership requests.
+            </p>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Recently Rejected -->
+{% if rejected %}
+<section class="card" aria-labelledby="rejected-heading">
+    <div class="card-header">
+        <h2 id="rejected-heading" class="card-title">Recently Rejected</h2>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Rejected</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for membership in rejected %}
+                        <tr>
+                            <td>{{ membership.user.username }}</td>
+                            <td>{{ membership.user.email }}</td>
+                            <td>{{ membership.reviewed_at|date:"M d, Y" }}</td>
+                            <td>{{ membership.review_note|default:"-" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

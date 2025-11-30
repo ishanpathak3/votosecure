@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-layout">
+    <!-- Sidebar -->
+    <aside class="dashboard-sidebar" aria-label="Manager navigation">
+        <p class="dashboard-sidebar-title">{{ request.user.managed_club.name }}</p>
+        
+        <nav class="dashboard-nav">
+            <a href="{% url 'dashboard:manager_dashboard' %}" 
+               class="dashboard-nav-link {% if request.resolver_match.url_name == 'manager_dashboard' %}active{% endif %}">
+                📊 Overview
+            </a>
+            <a href="{% url 'dashboard:manager_members' %}" 
+               class="dashboard-nav-link {% if 'member' in request.resolver_match.url_name %}active{% endif %}">
+                👥 Members
+                {% with pending=request.user.managed_club.get_pending_requests_count %}
+                    {% if pending > 0 %}
+                        <span class="badge">{{ pending }}</span>
+                    {% endif %}
+                {% endwith %}
+            </a>
+            <a href="{% url 'dashboard:manager_elections' %}" 
+               class="dashboard-nav-link {% if 'election' in request.resolver_match.url_name %}active{% endif %}">
+                🗳️ Elections
+            </a>
+        </nav>
+        
+        <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border-color);">
+        
+        <nav class="dashboard-nav">
+            <a href="{% url 'clubs:club_detail' request.user.managed_club.pk %}" class="dashboard-nav-link">
+                View Club Page
+            </a>
+            <a href="{% url 'elections:home' %}" class="dashboard-nav-link">
+                ← Back to Site
+            </a>
+        </nav>
+    </aside>
+    
+    <!-- Main Content -->
+    <div class="dashboard-content">
+        {% block dashboard_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

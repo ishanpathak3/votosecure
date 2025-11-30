@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="dashboard-layout">
+    <!-- Sidebar -->
+    <aside class="dashboard-sidebar" aria-label="Admin navigation">
+        <p class="dashboard-sidebar-title">Admin Dashboard</p>
+        
+        <nav class="dashboard-nav">
+            <a href="{% url 'dashboard:admin_dashboard' %}" 
+               class="dashboard-nav-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+                📊 Overview
+            </a>
+            <a href="{% url 'dashboard:admin_clubs' %}" 
+               class="dashboard-nav-link {% if 'club' in request.resolver_match.url_name %}active{% endif %}">
+                🏛️ Clubs
+            </a>
+            <a href="{% url 'dashboard:admin_elections' %}" 
+               class="dashboard-nav-link {% if 'election' in request.resolver_match.url_name %}active{% endif %}">
+                🗳️ Elections
+            </a>
+            <a href="{% url 'dashboard:admin_users' %}" 
+               class="dashboard-nav-link {% if 'user' in request.resolver_match.url_name %}active{% endif %}">
+                👥 Users
+            </a>
+        </nav>
+        
+        <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border-color);">
+        
+        <nav class="dashboard-nav">
+            <a href="{% url 'elections:home' %}" class="dashboard-nav-link">
+                ← Back to Site
+            </a>
+        </nav>
+    </aside>
+    
+    <!-- Main Content -->
+    <div class="dashboard-content">
+        {% block dashboard_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

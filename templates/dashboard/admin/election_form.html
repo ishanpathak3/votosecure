@@ -1,0 +1,213 @@
+{% extends 'dashboard/admin/base.html' %}
+
+{% block title %}{{ title }} - Admin Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<div class="page-header">
+    <nav aria-label="Breadcrumb" style="margin-bottom: 1rem;">
+        <a href="{% url 'dashboard:admin_elections' %}" style="color: var(--text-secondary);">
+            ← Back to Elections
+        </a>
+    </nav>
+    <h1 class="page-title">{{ title }}</h1>
+</div>
+
+<div class="card-grid" style="grid-template-columns: 1fr 1fr;">
+    <!-- Election Details Form -->
+    <section class="card" aria-labelledby="election-details-heading">
+        <div class="card-header">
+            <h2 id="election-details-heading" class="card-title">Election Details</h2>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="id_title" class="form-label form-label-required">Title</label>
+                    <input type="text" 
+                           name="title" 
+                           id="id_title" 
+                           class="form-input {% if form.title.errors %}error{% endif %}"
+                           value="{{ form.title.value|default:'' }}"
+                           required>
+                    {% if form.title.errors %}
+                        <p class="form-error">{{ form.title.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_description" class="form-label form-label-required">Description</label>
+                    <textarea name="description" 
+                              id="id_description" 
+                              class="form-textarea {% if form.description.errors %}error{% endif %}"
+                              rows="4"
+                              required>{{ form.description.value|default:'' }}</textarea>
+                    {% if form.description.errors %}
+                        <p class="form-error">{{ form.description.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="id_start_time" class="form-label form-label-required">Start Time</label>
+                        <input type="datetime-local" 
+                               name="start_time" 
+                               id="id_start_time" 
+                               class="form-input {% if form.start_time.errors %}error{% endif %}"
+                               value="{{ form.start_time.value|default:'' }}"
+                               required>
+                        {% if form.start_time.errors %}
+                            <p class="form-error">{{ form.start_time.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="id_end_time" class="form-label form-label-required">End Time</label>
+                        <input type="datetime-local" 
+                               name="end_time" 
+                               id="id_end_time" 
+                               class="form-input {% if form.end_time.errors %}error{% endif %}"
+                               value="{{ form.end_time.value|default:'' }}"
+                               required>
+                        {% if form.end_time.errors %}
+                            <p class="form-error">{{ form.end_time.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-checkbox-item">
+                        <input type="checkbox" 
+                               name="is_open" 
+                               class="form-checkbox"
+                               {% if form.is_open.value %}checked{% endif %}>
+                        <span>Open for voting (when within start/end times)</span>
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    {% if election %}Save Changes{% else %}Create Election{% endif %}
+                </button>
+            </form>
+        </div>
+    </section>
+    
+    <!-- Candidates (only for existing elections) -->
+    {% if election %}
+    <section class="card" aria-labelledby="candidates-heading">
+        <div class="card-header">
+            <h2 id="candidates-heading" class="card-title">Candidates ({{ candidates.count }})</h2>
+        </div>
+        <div class="card-body">
+            {% if candidates %}
+                <ul style="list-style: none; margin-bottom: 1.5rem;">
+                    {% for candidate in candidates %}
+                        <li style="padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>{{ candidate.name }}</strong>
+                                {% if candidate.description %}
+                                    <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                        {{ candidate.description|truncatechars:50 }}
+                                    </p>
+                                {% endif %}
+                            </div>
+                            <form method="post" 
+                                  action="{% url 'dashboard:admin_candidate_delete' election.pk candidate.pk %}"
+                                  onsubmit="return confirm('Delete this candidate?');"
+                                  style="margin: 0;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm" aria-label="Delete {{ candidate.name }}">
+                                    ×
+                                </button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="alert alert-warning" style="margin-bottom: 1rem;">
+                    <p>No candidates added yet. Add at least one candidate before opening the election.</p>
+                </div>
+            {% endif %}
+            
+            <!-- Add Candidate Form -->
+            <form method="post" action="{% url 'dashboard:admin_candidate_add' election.pk %}">
+                {% csrf_token %}
+                <h3 style="font-size: 1rem; margin-bottom: 0.75rem;">Add Candidate</h3>
+                
+                <div class="form-group">
+                    <label for="id_candidate_name" class="form-label form-label-required">Name</label>
+                    <input type="text" 
+                           name="name" 
+                           id="id_candidate_name" 
+                           class="form-input"
+                           required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_candidate_description" class="form-label">Description (optional)</label>
+                    <textarea name="description" 
+                              id="id_candidate_description" 
+                              class="form-textarea"
+                              rows="2"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_candidate_position" class="form-label">Position (order)</label>
+                    <input type="number" 
+                           name="position" 
+                           id="id_candidate_position" 
+                           class="form-input"
+                           value="0"
+                           min="0">
+                    <p class="form-hint">Lower numbers appear first on the ballot.</p>
+                </div>
+                
+                <button type="submit" class="btn btn-success">
+                    + Add Candidate
+                </button>
+            </form>
+        </div>
+    </section>
+    {% endif %}
+</div>
+
+{% if election %}
+<!-- Election Info -->
+<section class="card" style="margin-top: 2rem;">
+    <div class="card-header">
+        <h2 class="card-title">Election Information</h2>
+    </div>
+    <div class="card-body">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <p class="stat-card-label">Type</p>
+                <p class="stat-card-value" style="font-size: 1.25rem;">
+                    {% if election.club %}{{ election.club.name }}{% else %}Global{% endif %}
+                </p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-card-label">Status</p>
+                <p class="stat-card-value" style="font-size: 1.25rem;">{{ election.get_status_display }}</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-card-label">Total Votes</p>
+                <p class="stat-card-value">{{ election.get_total_votes }}</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-card-label">Candidates</p>
+                <p class="stat-card-value">{{ candidates.count }}</p>
+            </div>
+        </div>
+        
+        {% if election.is_active %}
+            <div style="margin-top: 1.5rem;">
+                <a href="{% url 'dashboard:admin_election_end_early' election.pk %}" 
+                   class="btn btn-warning">
+                    End Election Early
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endif %}
+{% endblock %}

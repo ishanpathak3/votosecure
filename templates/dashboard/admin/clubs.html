@@ -1,0 +1,77 @@
+{% extends 'dashboard/admin/base.html' %}
+
+{% block title %}Manage Clubs - Admin Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 class="page-title">Clubs</h1>
+        <p class="page-subtitle">Manage clubs and assign election managers</p>
+    </div>
+    <a href="{% url 'dashboard:admin_club_create' %}" class="btn btn-primary">
+        + Create Club
+    </a>
+</div>
+
+<div class="table-container">
+    <table class="table">
+        <caption class="visually-hidden">List of all clubs</caption>
+        <thead>
+            <tr>
+                <th scope="col">Club Name</th>
+                <th scope="col">Manager</th>
+                <th scope="col">Members</th>
+                <th scope="col">Elections</th>
+                <th scope="col">Status</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for club in clubs %}
+                <tr>
+                    <td>
+                        <strong>{{ club.name }}</strong>
+                    </td>
+                    <td>
+                        {% if club.manager %}
+                            {{ club.manager.username }}
+                        {% else %}
+                            <span style="color: var(--text-muted);">Not assigned</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ club.member_count }}</td>
+                    <td>{{ club.election_count }}</td>
+                    <td>
+                        {% if club.is_active %}
+                            <span class="status-badge approved">Active</span>
+                        {% else %}
+                            <span class="status-badge ended">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <a href="{% url 'dashboard:admin_club_edit' club.pk %}" 
+                               class="btn btn-outline btn-sm"
+                               aria-label="Edit {{ club.name }}">
+                                Edit
+                            </a>
+                            <a href="{% url 'dashboard:admin_club_delete' club.pk %}" 
+                               class="btn btn-outline-danger btn-sm"
+                               aria-label="Delete {{ club.name }}">
+                                Delete
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 2rem;">
+                        No clubs have been created yet.
+                        <a href="{% url 'dashboard:admin_club_create' %}">Create the first club</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

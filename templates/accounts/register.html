@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Register - VotoSecure{% endblock %}
+
+{% block content %}
+<div style="max-width: 500px; margin: 0 auto;">
+    <div class="card">
+        <div class="card-header" style="text-align: center;">
+            <h1 class="card-title">Create Account</h1>
+            <p style="color: var(--text-secondary); margin-top: 0.5rem;">
+                Join VotoSecure to participate in elections
+            </p>
+        </div>
+        
+        <div class="card-body">
+            {% if form.errors %}
+                <div class="alert alert-danger" role="alert">
+                    <p><strong>Please correct the errors below:</strong></p>
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <p>{{ field.label }}: {{ error }}</p>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <form method="post" novalidate>
+                {% csrf_token %}
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="id_first_name" class="form-label form-label-required">First Name</label>
+                        <input type="text" 
+                               name="first_name" 
+                               id="id_first_name" 
+                               class="form-input {% if form.first_name.errors %}error{% endif %}"
+                               value="{{ form.first_name.value|default:'' }}"
+                               autocomplete="given-name"
+                               required>
+                        {% if form.first_name.errors %}
+                            <p class="form-error">{{ form.first_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="id_last_name" class="form-label form-label-required">Last Name</label>
+                        <input type="text" 
+                               name="last_name" 
+                               id="id_last_name" 
+                               class="form-input {% if form.last_name.errors %}error{% endif %}"
+                               value="{{ form.last_name.value|default:'' }}"
+                               autocomplete="family-name"
+                               required>
+                        {% if form.last_name.errors %}
+                            <p class="form-error">{{ form.last_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_username" class="form-label form-label-required">Username</label>
+                    <input type="text" 
+                           name="username" 
+                           id="id_username" 
+                           class="form-input {% if form.username.errors %}error{% endif %}"
+                           value="{{ form.username.value|default:'' }}"
+                           autocomplete="username"
+                           required>
+                    <p class="form-hint">Letters, digits, and @/./+/-/_ only.</p>
+                    {% if form.username.errors %}
+                        <p class="form-error">{{ form.username.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_email" class="form-label form-label-required">Email</label>
+                    <input type="email" 
+                           name="email" 
+                           id="id_email" 
+                           class="form-input {% if form.email.errors %}error{% endif %}"
+                           value="{{ form.email.value|default:'' }}"
+                           autocomplete="email"
+                           required>
+                    {% if form.email.errors %}
+                        <p class="form-error">{{ form.email.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_password1" class="form-label form-label-required">Password</label>
+                    <input type="password" 
+                           name="password1" 
+                           id="id_password1" 
+                           class="form-input {% if form.password1.errors %}error{% endif %}"
+                           autocomplete="new-password"
+                           required>
+                    <p class="form-hint">At least 8 characters, not entirely numeric.</p>
+                    {% if form.password1.errors %}
+                        <p class="form-error">{{ form.password1.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_password2" class="form-label form-label-required">Confirm Password</label>
+                    <input type="password" 
+                           name="password2" 
+                           id="id_password2" 
+                           class="form-input {% if form.password2.errors %}error{% endif %}"
+                           autocomplete="new-password"
+                           required>
+                    {% if form.password2.errors %}
+                        <p class="form-error">{{ form.password2.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block btn-lg">
+                    Create Account
+                </button>
+            </form>
+        </div>
+        
+        <div class="card-footer" style="text-align: center;">
+            <p>
+                Already have an account? 
+                <a href="{% url 'accounts:login' %}">Sign in here</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

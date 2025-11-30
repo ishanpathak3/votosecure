@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ club.name }} - VotoSecure{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+    
+    <!-- Back Link -->
+    <nav aria-label="Breadcrumb" style="margin-bottom: 1.5rem;">
+        <a href="{% url 'clubs:club_list' %}" style="color: var(--text-secondary);">
+            ← Back to Clubs
+        </a>
+    </nav>
+
+    <!-- Club Header -->
+    <header class="card" style="margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">{{ club.name }}</h1>
+                {% if club.manager %}
+                    <p style="color: var(--text-secondary);">
+                        Managed by: <strong>{{ club.manager.get_full_name|default:club.manager.username }}</strong>
+                    </p>
+                {% endif %}
+            </div>
+            
+            <div>
+                {% if is_manager %}
+                    <span class="status-badge" style="background-color: var(--success-bg); color: var(--success);">
+                        👑 You manage this club
+                    </span>
+                {% elif is_member %}
+                    <span class="status-badge approved">✓ Member</span>
+                {% elif membership_status == 'pending' %}
+                    <span class="status-badge pending">⏳ Request Pending</span>
+                {% elif membership_status == 'rejected' %}
+                    <span class="status-badge rejected">✗ Request Rejected</span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <p style="margin-top: 1rem; color: var(--text-secondary);">{{ club.description }}</p>
+        
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+            <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                <div>
+                    <span style="font-size: 0.875rem; color: var(--text-muted);">Members</span>
+                    <p style="font-size: 1.5rem; font-weight: 700;">{{ member_count }}</p>
+                </div>
+                {% if elections %}
+                    <div>
+                        <span style="font-size: 0.875rem; color: var(--text-muted);">Elections</span>
+                        <p style="font-size: 1.5rem; font-weight: 700;">{{ elections.count }}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div style="margin-top: 1.5rem;">
+            {% if not is_member and not is_manager and not is_admin %}
+                {% if membership_status == 'pending' %}
+                    <form method="post" action="{% url 'clubs:cancel_membership_request' club.pk %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger">
+                            Cancel Request
+                        </button>
+                    </form>
+                {% elif membership_status != 'rejected' %}
+                    <form method="post" action="{% url 'clubs:request_membership' club.pk %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">
+                            Request to Join
+                        </button>
+                    </form>
+                {% else %}
+                    <form method="post" action="{% url 'clubs:request_membership' club.pk %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">
+                            Request Again
+                        </button>
+                    </form>
+                    {% if membership.review_note %}
+                        <p style="margin-top: 0.5rem; color: var(--danger); font-size: 0.875rem;">
+                            Rejection note: {{ membership.review_note }}
+                        </p>
+                    {% endif %}
+                {% endif %}
+            {% elif is_member and not is_manager %}
+                <form method="post" action="{% url 'clubs:leave_club' club.pk %}" 
+                      style="display: inline;"
+                      onsubmit="return confirm('Are you sure you want to leave this club?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger">
+                        Leave Club
+                    </button>
+                </form>
+            {% endif %}
+            
+            {% if is_manager %}
+                <a href="{% url 'dashboard:manager_dashboard' %}" class="btn btn-success">
+                    Manager Dashboard
+                </a>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Club Elections -->
+    {% if elections %}
+        <section aria-labelledby="elections-heading">
+            <h2 id="elections-heading" class="section-title">Club Elections</h2>
+            
+            <div class="card-grid">
+                {% for election in elections %}
+                    <article class="election-card {% if election.is_active %}active{% elif election.is_upcoming %}upcoming{% endif %}">
+                        <h3 class="election-card-title">{{ election.title }}</h3>
+                        <p class="election-card-description">{{ election.description }}</p>
+                        <div class="election-card-meta">
+                            <p>
+                                {% with status=election.get_status %}
+                                    {% if status == 'active' %}
+                                        <span class="status-badge active">● Active</span>
+                                    {% elif status == 'upcoming' %}
+                                        <span class="status-badge upcoming">◐ Upcoming</span>
+                                    {% else %}
+                                        <span class="status-badge ended">○ Ended</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </p>
+                            <p>📅 {{ election.start_time|date:"M d" }} - {{ election.end_time|date:"M d, Y" }}</p>
+                        </div>
+                        <a href="{% url 'elections:election_detail' election.pk %}" 
+                           class="btn btn-primary btn-block">
+                            {% if election.is_active %}Vote Now{% else %}View Details{% endif %}
+                        </a>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+    {% elif is_member or is_manager or is_admin %}
+        <div class="alert alert-info">
+            <p>No elections have been created for this club yet.</p>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <p>Join this club to view and participate in their elections.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

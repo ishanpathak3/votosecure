@@ -1,0 +1,122 @@
+{% extends 'dashboard/admin/base.html' %}
+
+{% block title %}Manage Elections - Admin Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 class="page-title">Elections</h1>
+        <p class="page-subtitle">Manage global elections and view all club elections</p>
+    </div>
+    <a href="{% url 'dashboard:admin_election_create' %}" class="btn btn-primary">
+        + Create Global Election
+    </a>
+</div>
+
+<!-- Filters -->
+<nav aria-label="Election filters" style="margin-bottom: 1.5rem;">
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{% url 'dashboard:admin_elections' %}" 
+           class="btn {% if filter_type == 'all' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">
+            All
+        </a>
+        <a href="{% url 'dashboard:admin_elections' %}?type=global" 
+           class="btn {% if filter_type == 'global' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">
+            Global Only
+        </a>
+        <a href="{% url 'dashboard:admin_elections' %}?type=club" 
+           class="btn {% if filter_type == 'club' %}btn-primary{% else %}btn-outline{% endif %} btn-sm">
+            Club Only
+        </a>
+    </div>
+</nav>
+
+<div class="table-container">
+    <table class="table">
+        <caption class="visually-hidden">List of all elections</caption>
+        <thead>
+            <tr>
+                <th scope="col">Election</th>
+                <th scope="col">Type</th>
+                <th scope="col">Status</th>
+                <th scope="col">Dates</th>
+                <th scope="col">Votes</th>
+                <th scope="col">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for election in elections %}
+                <tr>
+                    <td>
+                        <strong>{{ election.title }}</strong>
+                        <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.25rem;">
+                            By {{ election.created_by.username }}
+                        </p>
+                    </td>
+                    <td>
+                        {% if election.club %}
+                            <span class="status-badge" style="background-color: var(--primary-light); color: var(--primary);">
+                                {{ election.club.name }}
+                            </span>
+                        {% else %}
+                            <span class="status-badge approved">Global</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% with status=election.get_status %}
+                            {% if status == 'active' %}
+                                <span class="status-badge active">● Active</span>
+                            {% elif status == 'upcoming' %}
+                                <span class="status-badge upcoming">◐ Upcoming</span>
+                            {% elif status == 'ended' %}
+                                <span class="status-badge ended">○ Ended</span>
+                            {% elif status == 'ended_early' %}
+                                <span class="status-badge ended">⊘ Ended Early</span>
+                            {% elif status == 'draft' %}
+                                <span class="status-badge draft">◌ Draft</span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                    <td style="font-size: 0.875rem;">
+                        {{ election.start_time|date:"M d" }} - {{ election.end_time|date:"M d, Y" }}
+                    </td>
+                    <td>{{ election.vote_count }}</td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <a href="{% url 'elections:election_detail' election.pk %}" 
+                               class="btn btn-outline btn-sm"
+                               aria-label="View {{ election.title }}">
+                                View
+                            </a>
+                            <a href="{% url 'dashboard:admin_election_edit' election.pk %}" 
+                               class="btn btn-outline btn-sm"
+                               aria-label="Edit {{ election.title }}">
+                                Edit
+                            </a>
+                            {% if election.is_active %}
+                                <a href="{% url 'dashboard:admin_election_end_early' election.pk %}" 
+                                   class="btn btn-warning btn-sm"
+                                   aria-label="End {{ election.title }} early">
+                                    End Early
+                                </a>
+                            {% endif %}
+                            <a href="{% url 'dashboard:admin_election_delete' election.pk %}" 
+                               class="btn btn-outline-danger btn-sm"
+                               aria-label="Delete {{ election.title }}">
+                                Delete
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 2rem;">
+                        No elections found.
+                        <a href="{% url 'dashboard:admin_election_create' %}">Create the first global election</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

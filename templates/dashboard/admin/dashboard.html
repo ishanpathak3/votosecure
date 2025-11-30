@@ -1,0 +1,146 @@
+{% extends 'dashboard/admin/base.html' %}
+
+{% block title %}Admin Dashboard - VotoSecure{% endblock %}
+
+{% block dashboard_content %}
+<div class="page-header">
+    <h1 class="page-title">Admin Dashboard</h1>
+    <p class="page-subtitle">Overview of VotoSecure platform</p>
+</div>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <p class="stat-card-label">Total Users</p>
+        <p class="stat-card-value">{{ total_users }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-card-label">Active Clubs</p>
+        <p class="stat-card-value">{{ total_clubs }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-card-label">Total Elections</p>
+        <p class="stat-card-value">{{ total_elections }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-card-label">Active Elections</p>
+        <p class="stat-card-value" style="color: var(--success);">{{ active_elections }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-card-label">Total Votes Cast</p>
+        <p class="stat-card-value">{{ total_votes }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-card-label">Pending Memberships</p>
+        <p class="stat-card-value" style="color: var(--warning);">{{ pending_memberships }}</p>
+    </div>
+</div>
+
+<div class="card-grid" style="grid-template-columns: 1fr 1fr;">
+    <!-- Recent Elections -->
+    <section class="card" aria-labelledby="recent-elections-heading">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 id="recent-elections-heading" class="card-title">Recent Elections</h2>
+            <a href="{% url 'dashboard:admin_elections' %}" class="btn btn-outline btn-sm">View All</a>
+        </div>
+        <div class="card-body">
+            {% if recent_elections %}
+                <ul style="list-style: none;">
+                    {% for election in recent_elections %}
+                        <li style="padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
+                            <a href="{% url 'dashboard:admin_election_edit' election.pk %}">
+                                <strong>{{ election.title }}</strong>
+                            </a>
+                            <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                {% if election.club %}{{ election.club.name }}{% else %}Global{% endif %}
+                                • {{ election.get_status_display }}
+                            </p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p style="color: var(--text-muted);">No elections yet.</p>
+            {% endif %}
+        </div>
+    </section>
+    
+    <!-- Recent Users -->
+    <section class="card" aria-labelledby="recent-users-heading">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 id="recent-users-heading" class="card-title">Recent Users</h2>
+            <a href="{% url 'dashboard:admin_users' %}" class="btn btn-outline btn-sm">View All</a>
+        </div>
+        <div class="card-body">
+            {% if recent_users %}
+                <ul style="list-style: none;">
+                    {% for u in recent_users %}
+                        <li style="padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
+                            <a href="{% url 'dashboard:admin_user_edit' u.pk %}">
+                                <strong>{{ u.username }}</strong>
+                            </a>
+                            <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                {{ u.email }} • Joined {{ u.date_joined|date:"M d, Y" }}
+                            </p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p style="color: var(--text-muted);">No users yet.</p>
+            {% endif %}
+        </div>
+    </section>
+</div>
+
+<!-- Quick Actions -->
+<section class="card" style="margin-top: 2rem;" aria-labelledby="quick-actions-heading">
+    <div class="card-header">
+        <h2 id="quick-actions-heading" class="card-title">Quick Actions</h2>
+    </div>
+    <div class="card-body">
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <a href="{% url 'dashboard:admin_election_create' %}" class="btn btn-primary">
+                + Create Global Election
+            </a>
+            <a href="{% url 'dashboard:admin_club_create' %}" class="btn btn-success">
+                + Create Club
+            </a>
+            <a href="{% url 'dashboard:admin_user_create' %}" class="btn btn-secondary">
+                + Create User
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Recent Audit Logs -->
+{% if recent_logs %}
+<section class="card" style="margin-top: 2rem;" aria-labelledby="audit-logs-heading">
+    <div class="card-header">
+        <h2 id="audit-logs-heading" class="card-title">Recent Activity</h2>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Object</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in recent_logs %}
+                        <tr>
+                            <td>{{ log.timestamp|date:"M d, g:i A" }}</td>
+                            <td>{{ log.user.username|default:"System" }}</td>
+                            <td>{{ log.get_action_display }}</td>
+                            <td>{{ log.object_repr|truncatechars:40 }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

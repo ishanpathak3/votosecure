@@ -1,0 +1,140 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="VotoSecure - Secure, accessible campus voting platform">
+    <meta name="theme-color" content="#2563eb">
+    
+    <title>{% block title %}VotoSecure{% endblock %}</title>
+    
+    <!-- Preload critical CSS -->
+    <link rel="preload" href="{% static 'css/styles.css' %}" as="style">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    
+    <!-- Chart.js for results visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Skip Link for Keyboard Navigation (Accessibility) -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <!-- Navigation -->
+    <nav class="navbar" role="navigation" aria-label="Main navigation">
+        <div class="navbar-container">
+            <a href="{% url 'elections:home' %}" class="navbar-brand" aria-label="VotoSecure Home">
+                🗳️ VotoSecure
+            </a>
+            
+            <button class="navbar-toggle" 
+                    aria-expanded="false" 
+                    aria-controls="navbar-links"
+                    aria-label="Toggle navigation menu"
+                    onclick="toggleNavbar()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M3 12h18M3 6h18M3 18h18"/>
+                </svg>
+            </button>
+            
+            <div class="navbar-links" id="navbar-links">
+                <a href="{% url 'elections:election_list' %}" class="navbar-link">
+                    All Elections
+                </a>
+                
+                {% if user.is_authenticated %}
+                    <a href="{% url 'clubs:club_list' %}" class="navbar-link">
+                        Clubs
+                    </a>
+                    
+                    {% if user.is_superuser %}
+                        <a href="{% url 'dashboard:admin_dashboard' %}" class="navbar-link admin">
+                            Admin Dashboard
+                        </a>
+                    {% elif user.managed_club %}
+                        <a href="{% url 'dashboard:manager_dashboard' %}" class="navbar-link manager">
+                            Manager Dashboard
+                        </a>
+                    {% endif %}
+                    
+                    <a href="{% url 'accounts:profile' %}" class="navbar-link">
+                        {{ user.username }}
+                    </a>
+                    
+                    <form method="post" action="{% url 'accounts:logout' %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="navbar-link" 
+                                style="background:none; border:none; cursor:pointer; padding: 0.5rem 1rem;">
+                            Logout
+                        </button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'accounts:login' %}" class="navbar-link">
+                        Login
+                    </a>
+                    <a href="{% url 'accounts:register' %}" class="navbar-link btn btn-primary btn-sm">
+                        Register
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% if messages %}
+        <div class="main-content" style="padding-bottom: 0;" role="alert" aria-live="polite">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}" role="alert">
+                    <p>{{ message }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main id="main-content" class="main-content" role="main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer" role="contentinfo">
+        <p>&copy; 2025 VotoSecure - Secure, Accessible Campus Voting Platform</p>
+        <p style="margin-top: 0.5rem;">
+            <a href="#" aria-label="Accessibility statement">Accessibility</a> |
+            <a href="#" aria-label="Privacy policy">Privacy</a> |
+            <a href="#" aria-label="Terms of service">Terms</a>
+        </p>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Mobile navigation toggle
+        function toggleNavbar() {
+            const navLinks = document.getElementById('navbar-links');
+            const toggle = document.querySelector('.navbar-toggle');
+            const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+            
+            navLinks.classList.toggle('active');
+            toggle.setAttribute('aria-expanded', !isExpanded);
+        }
+        
+        // Auto-dismiss alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    alert.style.opacity = '0';
+                    alert.style.transition = 'opacity 0.3s ease';
+                    setTimeout(function() {
+                        alert.remove();
+                    }, 300);
+                }, 5000);
+            });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - VotoSecure{% endblock %}
+
+{% block content %}
+<div style="text-align: center; margin-bottom: 3rem;">
+    <h1 class="page-title">Welcome to VotoSecure</h1>
+    <p class="page-subtitle">
+        Secure, transparent, and accessible voting for your campus
+    </p>
+</div>
+
+<!-- Active Elections -->
+<section style="margin-bottom: 3rem;" aria-labelledby="active-elections-heading">
+    <h2 id="active-elections-heading" class="section-title">🗳️ Active Elections</h2>
+    
+    {% if active_elections %}
+        <div class="card-grid">
+            {% for election in active_elections %}
+                <article class="election-card active">
+                    <h3 class="election-card-title">{{ election.title }}</h3>
+                    {% if election.club %}
+                        <p style="color: var(--primary); font-weight: 600; font-size: 0.875rem; margin-bottom: 0.5rem;">
+                            📌 {{ election.club.name }}
+                        </p>
+                    {% else %}
+                        <p style="color: var(--success); font-weight: 600; font-size: 0.875rem; margin-bottom: 0.5rem;">
+                            🌐 Global Election
+                        </p>
+                    {% endif %}
+                    <p class="election-card-description">{{ election.description }}</p>
+                    <div class="election-card-meta">
+                        <p>⏰ Ends: {{ election.end_time|date:"M d, Y - g:i A" }}</p>
+                        <p>👤 Created by: {{ election.created_by.username }}</p>
+                    </div>
+                    <a href="{% url 'elections:election_detail' election.pk %}" 
+                       class="btn btn-primary btn-block"
+                       aria-label="Vote in {{ election.title }}">
+                        Vote Now →
+                    </a>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info" role="status">
+            <p>No active elections at the moment. Check back soon!</p>
+        </div>
+    {% endif %}
+</section>
+
+<!-- Upcoming Elections -->
+<section aria-labelledby="upcoming-elections-heading">
+    <h2 id="upcoming-elections-heading" class="section-title">📅 Upcoming Elections</h2>
+    
+    {% if upcoming_elections %}
+        <div class="card-grid">
+            {% for election in upcoming_elections %}
+                <article class="election-card upcoming">
+                    <h3 class="election-card-title">{{ election.title }}</h3>
+                    {% if election.club %}
+                        <p style="color: var(--primary); font-weight: 600; font-size: 0.875rem; margin-bottom: 0.5rem;">
+                            📌 {{ election.club.name }}
+                        </p>
+                    {% else %}
+                        <p style="color: var(--warning); font-weight: 600; font-size: 0.875rem; margin-bottom: 0.5rem;">
+                            🌐 Global Election
+                        </p>
+                    {% endif %}
+                    <p class="election-card-description">{{ election.description }}</p>
+                    <div class="election-card-meta">
+                        <p>🚀 Starts: {{ election.start_time|date:"M d, Y - g:i A" }}</p>
+                        <p>👤 Created by: {{ election.created_by.username }}</p>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info" role="status">
+            <p>No upcoming elections scheduled.</p>
+        </div>
+    {% endif %}
+</section>
+
+<!-- Call to Action for Non-authenticated Users -->
+{% if not user.is_authenticated %}
+<section style="margin-top: 3rem; text-align: center;" aria-labelledby="cta-heading">
+    <div class="card" style="max-width: 600px; margin: 0 auto;">
+        <h2 id="cta-heading" style="font-size: 1.5rem; margin-bottom: 1rem;">Ready to Vote?</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+            Create an account or log in to participate in elections and join clubs.
+        </p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="{% url 'accounts:register' %}" class="btn btn-primary">
+                Create Account
+            </a>
+            <a href="{% url 'accounts:login' %}" class="btn btn-outline">
+                Log In
+            </a>
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,369 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ election.title }} - VotoSecure{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+    
+    <!-- Back Link -->
+    <nav aria-label="Breadcrumb" style="margin-bottom: 1.5rem;">
+        <a href="{% url 'elections:election_list' %}" style="color: var(--text-secondary);">
+            ← Back to Elections
+        </a>
+    </nav>
+
+    <!-- Election Header -->
+    <header class="election-detail-header">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h1 class="election-detail-title">{{ election.title }}</h1>
+                {% if election.club %}
+                    <p style="color: var(--primary); font-weight: 600; margin-bottom: 0.5rem;">
+                        📌 {{ election.club.name }} Election
+                    </p>
+                {% else %}
+                    <p style="color: var(--success); font-weight: 600; margin-bottom: 0.5rem;">
+                        🌐 Global Election
+                    </p>
+                {% endif %}
+            </div>
+            <div>
+                {% with status=election.get_status %}
+                    {% if status == 'active' %}
+                        <span class="status-badge active">● Active</span>
+                    {% elif status == 'upcoming' %}
+                        <span class="status-badge upcoming">◐ Upcoming</span>
+                    {% elif status == 'ended' %}
+                        <span class="status-badge ended">○ Ended</span>
+                    {% elif status == 'ended_early' %}
+                        <span class="status-badge ended">⊘ Ended Early</span>
+                    {% elif status == 'draft' %}
+                        <span class="status-badge draft">◌ Draft</span>
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+        
+        <p class="election-detail-description">{{ election.description }}</p>
+        
+        <div class="election-info-grid" role="list" aria-label="Election details">
+            <div class="election-info-item" role="listitem">
+                <div class="election-info-label">Start Time</div>
+                <div class="election-info-value">
+                    <time datetime="{{ election.start_time|date:'c' }}">
+                        {{ election.start_time|date:"F d, Y - g:i A" }}
+                    </time>
+                </div>
+            </div>
+            <div class="election-info-item" role="listitem">
+                <div class="election-info-label">End Time</div>
+                <div class="election-info-value">
+                    <time datetime="{{ election.end_time|date:'c' }}">
+                        {{ election.end_time|date:"F d, Y - g:i A" }}
+                    </time>
+                </div>
+            </div>
+            <div class="election-info-item" role="listitem">
+                <div class="election-info-label">Created By</div>
+                <div class="election-info-value">{{ election.created_by.username }}</div>
+            </div>
+            <div class="election-info-item" role="listitem">
+                <div class="election-info-label">Total Votes</div>
+                <div class="election-info-value">{{ election.get_total_votes }}</div>
+            </div>
+        </div>
+        
+        {% if election.ended_early %}
+            <div class="alert alert-warning" style="margin-top: 1rem; margin-bottom: 0;">
+                <p><strong>This election was ended early</strong>
+                {% if election.ended_early_reason %}
+                    - {{ election.ended_early_reason }}
+                {% endif %}
+                </p>
+            </div>
+        {% endif %}
+    </header>
+
+    <!-- Voting Section -->
+    {% if can_vote %}
+        <section class="candidates-section" aria-labelledby="voting-heading">
+            <h2 id="voting-heading" class="section-title">🗳️ Cast Your Vote</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                Select a candidate below to cast your vote. You can only vote once.
+            </p>
+            
+            <form method="POST" id="vote-form" role="radiogroup" aria-labelledby="voting-heading">
+                {% csrf_token %}
+                <div class="candidate-list">
+                    {% for candidate in candidates %}
+                        <div class="candidate-item" 
+                             onclick="selectCandidate({{ candidate.id }})"
+                             role="radio"
+                             aria-checked="false"
+                             tabindex="0"
+                             onkeypress="if(event.key === ' ' || event.key === 'Enter') selectCandidate({{ candidate.id }})"
+                             id="candidate-wrapper-{{ candidate.id }}">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <input type="radio" 
+                                       name="candidate" 
+                                       value="{{ candidate.id }}" 
+                                       id="candidate-{{ candidate.id }}"
+                                       style="width: 1.25rem; height: 1.25rem; cursor: pointer;"
+                                       aria-describedby="candidate-desc-{{ candidate.id }}">
+                                <div style="flex: 1;">
+                                    <label for="candidate-{{ candidate.id }}" style="cursor: pointer; display: block;">
+                                        <span class="candidate-name">{{ candidate.name }}</span>
+                                        {% if candidate.description %}
+                                            <p class="candidate-description" id="candidate-desc-{{ candidate.id }}">
+                                                {{ candidate.description }}
+                                            </p>
+                                        {% endif %}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="alert alert-warning">
+                            <p>No candidates have been added to this election yet.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                {% if candidates %}
+                    <div style="margin-top: 1.5rem; text-align: center;">
+                        <button type="button" 
+                                onclick="confirmVote()" 
+                                class="btn btn-success btn-lg"
+                                aria-describedby="vote-warning">
+                            🗳️ Cast My Vote
+                        </button>
+                        <p id="vote-warning" class="text-muted" style="margin-top: 0.5rem; font-size: 0.875rem;">
+                            This action cannot be undone.
+                        </p>
+                    </div>
+                {% endif %}
+            </form>
+        </section>
+        
+    {% elif has_voted %}
+        <div class="alert alert-success" role="status">
+            <p style="font-weight: 600; font-size: 1.125rem;">✓ You have successfully voted in this election!</p>
+            <p style="margin-top: 0.5rem;">Thank you for participating in the democratic process.</p>
+            {% if not show_results %}
+                <p style="margin-top: 0.5rem; color: var(--text-muted);">
+                    Results will be available after the election ends.
+                </p>
+            {% endif %}
+        </div>
+        
+    {% elif user.is_authenticated %}
+        <div class="alert alert-warning" role="status">
+            <p style="font-weight: 600;">{{ vote_message }}</p>
+        </div>
+        
+    {% else %}
+        <div class="alert alert-info" role="status">
+            <p style="font-weight: 600;">
+                Please <a href="{% url 'accounts:login' %}?next={{ request.path }}">log in</a> to vote in this election.
+            </p>
+        </div>
+    {% endif %}
+
+    <!-- Results Section -->
+    {% if show_results and results %}
+        <section class="results-section" aria-labelledby="results-heading">
+            <h2 id="results-heading" class="section-title">📊 Results</h2>
+            
+            <!-- Chart Container -->
+            <div class="chart-container" style="margin-bottom: 2rem;">
+                <canvas id="resultsChart" 
+                        aria-label="Election results chart showing vote distribution"
+                        role="img"></canvas>
+            </div>
+            
+            <!-- Detailed Results Table (Accessible) -->
+            <div class="table-container">
+                <table class="table" aria-describedby="results-heading">
+                    <caption class="visually-hidden">Election Results - {{ election.title }}</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Rank</th>
+                            <th scope="col">Candidate</th>
+                            <th scope="col">Votes</th>
+                            <th scope="col">Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in results %}
+                            <tr {% if forloop.first %}style="background-color: var(--success-bg);"{% endif %}>
+                                <td>
+                                    {% if forloop.first %}
+                                        🏆
+                                    {% else %}
+                                        {{ forloop.counter }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong>{{ result.candidate.name }}</strong>
+                                    {% if forloop.first %}
+                                        <span class="status-badge approved" style="margin-left: 0.5rem;">Winner</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ result.votes }}</td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <div class="progress-bar-bg" style="flex: 1; height: 0.75rem;">
+                                            <div class="progress-bar-fill" 
+                                                 style="width: {{ result.percentage }}%;"
+                                                 role="progressbar"
+                                                 aria-valuenow="{{ result.percentage }}"
+                                                 aria-valuemin="0"
+                                                 aria-valuemax="100"></div>
+                                        </div>
+                                        <span style="min-width: 3rem; text-align: right;">
+                                            {{ result.percentage|floatformat:1 }}%
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2"><strong>Total</strong></td>
+                            <td><strong>{{ total_votes }}</strong></td>
+                            <td><strong>100%</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </section>
+    {% elif not show_results and candidates %}
+        <section class="card" style="text-align: center; padding: 2rem;">
+            <h2 style="font-size: 1.25rem; margin-bottom: 0.5rem;">📊 Results</h2>
+            <p style="color: var(--text-muted);">
+                Results will be available after the election ends on 
+                <time datetime="{{ election.end_time|date:'c' }}">
+                    {{ election.end_time|date:"F d, Y - g:i A" }}
+                </time>
+            </p>
+        </section>
+    {% endif %}
+</div>
+
+<script>
+    function selectCandidate(candidateId) {
+        // Update radio button
+        document.getElementById('candidate-' + candidateId).checked = true;
+        
+        // Update visual selection
+        document.querySelectorAll('.candidate-item').forEach(function(item) {
+            item.classList.remove('selected');
+            item.setAttribute('aria-checked', 'false');
+        });
+        
+        const wrapper = document.getElementById('candidate-wrapper-' + candidateId);
+        wrapper.classList.add('selected');
+        wrapper.setAttribute('aria-checked', 'true');
+    }
+    
+    function confirmVote() {
+        const selectedCandidate = document.querySelector('input[name="candidate"]:checked');
+        
+        if (!selectedCandidate) {
+            alert('Please select a candidate before voting.');
+            return;
+        }
+        
+        const candidateName = document.querySelector(
+            'label[for="candidate-' + selectedCandidate.value + '"] .candidate-name'
+        ).textContent;
+        
+        if (confirm('Are you sure you want to vote for ' + candidateName + '?\n\nThis action cannot be undone.')) {
+            // Redirect to vote URL
+            window.location.href = '{% url "elections:cast_vote" election.id 0 %}'.replace('/0/', '/' + selectedCandidate.value + '/');
+        }
+    }
+    
+    // Keyboard navigation for candidate items
+    document.addEventListener('DOMContentLoaded', function() {
+        const candidates = document.querySelectorAll('.candidate-item');
+        candidates.forEach(function(candidate, index) {
+            candidate.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowDown' && index < candidates.length - 1) {
+                    candidates[index + 1].focus();
+                } else if (e.key === 'ArrowUp' && index > 0) {
+                    candidates[index - 1].focus();
+                }
+            });
+        });
+    });
+</script>
+
+{% if show_results and results %}
+<script>
+    // Chart.js Results Visualization
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('resultsChart').getContext('2d');
+        
+        // Vibrant color palette
+        const colors = [
+            '#2563eb', // Blue
+            '#10b981', // Green
+            '#f59e0b', // Amber
+            '#ef4444', // Red
+            '#8b5cf6', // Purple
+            '#ec4899', // Pink
+            '#06b6d4', // Cyan
+            '#84cc16', // Lime
+            '#f97316', // Orange
+            '#6366f1', // Indigo
+        ];
+        
+        const data = {
+            labels: [{% for result in results %}'{{ result.candidate.name }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                data: [{% for result in results %}{{ result.votes }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: colors.slice(0, {{ results|length }}),
+                borderWidth: 2,
+                borderColor: '#ffffff',
+            }]
+        };
+        
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            font: {
+                                size: 14
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const value = context.raw;
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return context.label + ': ' + value + ' votes (' + percentage + '%)';
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateScale: true,
+                    animateRotate: true
+                }
+            }
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

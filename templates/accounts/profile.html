@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile - VotoSecure{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <div class="page-header">
+        <h1 class="page-title">My Profile</h1>
+        <p class="page-subtitle">Manage your account and view your voting history</p>
+    </div>
+    
+    <div class="card-grid" style="grid-template-columns: 1fr 1fr;">
+        <!-- Profile Info -->
+        <section class="card" aria-labelledby="profile-heading">
+            <div class="card-header">
+                <h2 id="profile-heading" class="card-title">Account Information</h2>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="id_first_name" class="form-label">First Name</label>
+                        <input type="text" 
+                               name="first_name" 
+                               id="id_first_name" 
+                               class="form-input"
+                               value="{{ form.first_name.value|default:'' }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="id_last_name" class="form-label">Last Name</label>
+                        <input type="text" 
+                               name="last_name" 
+                               id="id_last_name" 
+                               class="form-input"
+                               value="{{ form.last_name.value|default:'' }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="id_email" class="form-label">Email</label>
+                        <input type="email" 
+                               name="email" 
+                               id="id_email" 
+                               class="form-input"
+                               value="{{ form.email.value|default:'' }}">
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Username</label>
+                        <input type="text" 
+                               class="form-input" 
+                               value="{{ user.username }}" 
+                               disabled>
+                        <p class="form-hint">Username cannot be changed.</p>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">
+                        Save Changes
+                    </button>
+                </form>
+            </div>
+        </section>
+        
+        <!-- Club Memberships -->
+        <section class="card" aria-labelledby="memberships-heading">
+            <div class="card-header">
+                <h2 id="memberships-heading" class="card-title">Club Memberships</h2>
+            </div>
+            <div class="card-body">
+                {% if managed_club %}
+                    <div class="alert alert-success" style="margin-bottom: 1rem;">
+                        <p><strong>Election Manager:</strong> {{ managed_club.name }}</p>
+                    </div>
+                {% endif %}
+                
+                {% if approved_memberships %}
+                    <h3 style="font-size: 1rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                        Member Of
+                    </h3>
+                    <ul style="list-style: none; margin-bottom: 1rem;">
+                        {% for membership in approved_memberships %}
+                            <li style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">
+                                <a href="{% url 'clubs:club_detail' membership.club.pk %}">
+                                    {{ membership.club.name }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                
+                {% if pending_memberships %}
+                    <h3 style="font-size: 1rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                        Pending Requests
+                    </h3>
+                    <ul style="list-style: none;">
+                        {% for membership in pending_memberships %}
+                            <li style="padding: 0.5rem 0; display: flex; justify-content: space-between; align-items: center;">
+                                <span>{{ membership.club.name }}</span>
+                                <span class="status-badge pending">Pending</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                
+                {% if not approved_memberships and not pending_memberships and not managed_club %}
+                    <p style="color: var(--text-muted);">
+                        You're not a member of any clubs yet.
+                        <a href="{% url 'clubs:club_list' %}">Browse clubs</a>
+                    </p>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+    
+    <!-- Voting History -->
+    <section class="card" style="margin-top: 2rem;" aria-labelledby="history-heading">
+        <div class="card-header">
+            <h2 id="history-heading" class="card-title">Recent Voting History</h2>
+        </div>
+        <div class="card-body">
+            {% if vote_receipts %}
+                <div class="table-container">
+                    <table class="table">
+                        <caption class="visually-hidden">Your recent votes</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Election</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">Voted On</th>
+                                <th scope="col">Receipt Code</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for receipt in vote_receipts %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'elections:election_detail' receipt.election.pk %}">
+                                            {{ receipt.election.title }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if receipt.election.club %}
+                                            <span class="status-badge" style="background-color: var(--primary-light); color: var(--primary);">
+                                                {{ receipt.election.club.name }}
+                                            </span>
+                                        {% else %}
+                                            <span class="status-badge approved">Global</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <time datetime="{{ receipt.voted_at|date:'c' }}">
+                                            {{ receipt.voted_at|date:"M d, Y - g:i A" }}
+                                        </time>
+                                    </td>
+                                    <td>
+                                        <code style="font-family: var(--font-mono); font-size: 0.875rem;">
+                                            {{ receipt.receipt_code }}
+                                        </code>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p style="color: var(--text-muted); text-align: center; padding: 2rem 0;">
+                    You haven't voted in any elections yet.
+                </p>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endblock %}

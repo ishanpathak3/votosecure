@@ -1,0 +1,44 @@
+{% extends 'dashboard/admin/base.html' %}
+
+{% block title %}Delete Election - Admin Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<div class="page-header">
+    <nav aria-label="Breadcrumb" style="margin-bottom: 1rem;">
+        <a href="{% url 'dashboard:admin_elections' %}" style="color: var(--text-secondary);">
+            ← Back to Elections
+        </a>
+    </nav>
+    <h1 class="page-title">Delete Election</h1>
+</div>
+
+<div class="card" style="max-width: 600px;">
+    <div class="card-header">
+        <h2 class="card-title" style="color: var(--danger);">⚠️ Confirm Deletion</h2>
+    </div>
+    <div class="card-body">
+        <p>Are you sure you want to delete the election <strong>{{ election.title }}</strong>?</p>
+        
+        <div class="alert alert-danger" style="margin-top: 1rem;">
+            <p><strong>This action will permanently delete:</strong></p>
+            <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                <li>All candidates ({{ election.candidates.count }})</li>
+                <li>All votes ({{ election.get_total_votes }})</li>
+                <li>All vote receipts</li>
+            </ul>
+        </div>
+        
+        <form method="post" style="margin-top: 1.5rem;">
+            {% csrf_token %}
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn btn-danger">
+                    Yes, Delete Election
+                </button>
+                <a href="{% url 'dashboard:admin_elections' %}" class="btn btn-outline">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

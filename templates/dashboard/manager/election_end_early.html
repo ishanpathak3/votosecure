@@ -1,0 +1,56 @@
+{% extends 'dashboard/manager/base.html' %}
+
+{% block title %}End Election Early - {{ club.name }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="page-header">
+    <nav aria-label="Breadcrumb" style="margin-bottom: 1rem;">
+        <a href="{% url 'dashboard:manager_elections' %}" style="color: var(--text-secondary);">
+            ← Back to Elections
+        </a>
+    </nav>
+    <h1 class="page-title">End Election Early</h1>
+</div>
+
+<div class="card" style="max-width: 600px;">
+    <div class="card-header">
+        <h2 class="card-title" style="color: var(--warning);">⚠️ Confirm Early Termination</h2>
+    </div>
+    <div class="card-body">
+        <p>Are you sure you want to end <strong>{{ election.title }}</strong> early?</p>
+        
+        <div class="alert alert-warning" style="margin-top: 1rem;">
+            <p><strong>Current Status:</strong></p>
+            <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                <li>Scheduled end: {{ election.end_time|date:"F d, Y - g:i A" }}</li>
+                <li>Votes cast so far: {{ election.get_total_votes }}</li>
+            </ul>
+            <p style="margin-top: 0.5rem;">
+                Once ended, no more votes can be cast and results will be visible immediately.
+            </p>
+        </div>
+        
+        <form method="post" style="margin-top: 1.5rem;">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="id_reason" class="form-label">Reason (optional)</label>
+                <textarea name="reason" 
+                          id="id_reason" 
+                          class="form-textarea"
+                          rows="3"
+                          placeholder="Enter a reason for ending the election early..."></textarea>
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+                <button type="submit" class="btn btn-warning">
+                    Yes, End Election Now
+                </button>
+                <a href="{% url 'dashboard:manager_elections' %}" class="btn btn-outline">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

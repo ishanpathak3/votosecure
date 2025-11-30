@@ -1,0 +1,141 @@
+{% extends 'dashboard/admin/base.html' %}
+
+{% block title %}{{ title }} - Admin Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<div class="page-header">
+    <nav aria-label="Breadcrumb" style="margin-bottom: 1rem;">
+        <a href="{% url 'dashboard:admin_clubs' %}" style="color: var(--text-secondary);">
+            ← Back to Clubs
+        </a>
+    </nav>
+    <h1 class="page-title">{{ title }}</h1>
+</div>
+
+<div class="card-grid" style="grid-template-columns: 1fr 1fr;">
+    <!-- Club Details Form -->
+    <section class="card" aria-labelledby="club-details-heading">
+        <div class="card-header">
+            <h2 id="club-details-heading" class="card-title">Club Details</h2>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="id_name" class="form-label form-label-required">Club Name</label>
+                    <input type="text" 
+                           name="name" 
+                           id="id_name" 
+                           class="form-input {% if form.name.errors %}error{% endif %}"
+                           value="{{ form.name.value|default:'' }}"
+                           required>
+                    {% if form.name.errors %}
+                        <p class="form-error">{{ form.name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_description" class="form-label form-label-required">Description</label>
+                    <textarea name="description" 
+                              id="id_description" 
+                              class="form-textarea {% if form.description.errors %}error{% endif %}"
+                              rows="4"
+                              required>{{ form.description.value|default:'' }}</textarea>
+                    {% if form.description.errors %}
+                        <p class="form-error">{{ form.description.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-checkbox-item">
+                        <input type="checkbox" 
+                               name="is_active" 
+                               class="form-checkbox"
+                               {% if form.is_active.value %}checked{% endif %}>
+                        <span>Active (can hold elections)</span>
+                    </label>
+                </div>
+                
+                <button type="submit" name="save_club" class="btn btn-primary">
+                    {% if club %}Save Changes{% else %}Create Club{% endif %}
+                </button>
+            </form>
+        </div>
+    </section>
+    
+    <!-- Manager Assignment (only for existing clubs) -->
+    {% if club %}
+    <section class="card" aria-labelledby="manager-heading">
+        <div class="card-header">
+            <h2 id="manager-heading" class="card-title">Election Manager</h2>
+        </div>
+        <div class="card-body">
+            {% if club.manager %}
+                <div class="alert alert-success" style="margin-bottom: 1rem;">
+                    <p><strong>Current Manager:</strong> {{ club.manager.get_full_name|default:club.manager.username }}</p>
+                    <p style="margin-top: 0.25rem; font-size: 0.875rem;">{{ club.manager.email }}</p>
+                </div>
+            {% else %}
+                <div class="alert alert-warning" style="margin-bottom: 1rem;">
+                    <p>No manager assigned to this club.</p>
+                </div>
+            {% endif %}
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="id_manager" class="form-label">Assign Manager</label>
+                    <select name="manager" id="id_manager" class="form-select">
+                        <option value="">-- No Manager --</option>
+                        {% for user in manager_form.fields.manager.queryset %}
+                            <option value="{{ user.pk }}" 
+                                    {% if club.manager and club.manager.pk == user.pk %}selected{% endif %}>
+                                {{ user.username }} ({{ user.email }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <p class="form-hint">
+                        Only users who don't manage another club are shown.
+                    </p>
+                </div>
+                
+                <button type="submit" name="assign_manager" class="btn btn-success">
+                    {% if club.manager %}Update Manager{% else %}Assign Manager{% endif %}
+                </button>
+            </form>
+        </div>
+    </section>
+    {% endif %}
+</div>
+
+<!-- Club Statistics (only for existing clubs) -->
+{% if club %}
+<section class="card" style="margin-top: 2rem;" aria-labelledby="stats-heading">
+    <div class="card-header">
+        <h2 id="stats-heading" class="card-title">Club Statistics</h2>
+    </div>
+    <div class="card-body">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <p class="stat-card-label">Members</p>
+                <p class="stat-card-value">{{ club.get_member_count }}</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-card-label">Pending Requests</p>
+                <p class="stat-card-value" style="color: var(--warning);">{{ club.get_pending_requests_count }}</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-card-label">Elections</p>
+                <p class="stat-card-value">{{ club.elections.count }}</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-card-label">Active Elections</p>
+                <p class="stat-card-value" style="color: var(--success);">{{ club.get_active_elections_count }}</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

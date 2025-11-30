@@ -1,0 +1,151 @@
+{% extends 'dashboard/admin/base.html' %}
+
+{% block title %}{{ title }} - Admin Dashboard{% endblock %}
+
+{% block dashboard_content %}
+<div class="page-header">
+    <nav aria-label="Breadcrumb" style="margin-bottom: 1rem;">
+        <a href="{% url 'dashboard:admin_users' %}" style="color: var(--text-secondary);">
+            ← Back to Users
+        </a>
+    </nav>
+    <h1 class="page-title">{{ title }}</h1>
+</div>
+
+<div class="card" style="max-width: 600px;">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="id_username" class="form-label form-label-required">Username</label>
+                <input type="text" 
+                       name="username" 
+                       id="id_username" 
+                       class="form-input {% if form.username.errors %}error{% endif %}"
+                       value="{{ form.username.value|default:'' }}"
+                       {% if not is_create %}readonly{% endif %}
+                       required>
+                {% if form.username.errors %}
+                    <p class="form-error">{{ form.username.errors.0 }}</p>
+                {% endif %}
+                {% if not is_create %}
+                    <p class="form-hint">Username cannot be changed.</p>
+                {% endif %}
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="id_first_name" class="form-label">First Name</label>
+                    <input type="text" 
+                           name="first_name" 
+                           id="id_first_name" 
+                           class="form-input"
+                           value="{{ form.first_name.value|default:'' }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_last_name" class="form-label">Last Name</label>
+                    <input type="text" 
+                           name="last_name" 
+                           id="id_last_name" 
+                           class="form-input"
+                           value="{{ form.last_name.value|default:'' }}">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="id_email" class="form-label">Email</label>
+                <input type="email" 
+                       name="email" 
+                       id="id_email" 
+                       class="form-input {% if form.email.errors %}error{% endif %}"
+                       value="{{ form.email.value|default:'' }}">
+                {% if form.email.errors %}
+                    <p class="form-error">{{ form.email.errors.0 }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="id_password" class="form-label {% if is_create %}form-label-required{% endif %}">
+                    {% if is_create %}Password{% else %}New Password{% endif %}
+                </label>
+                <input type="password" 
+                       name="password" 
+                       id="id_password" 
+                       class="form-input"
+                       autocomplete="new-password"
+                       {% if is_create %}required{% endif %}>
+                {% if not is_create %}
+                    <p class="form-hint">Leave blank to keep the current password.</p>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label class="form-checkbox-item">
+                    <input type="checkbox" 
+                           name="is_active" 
+                           class="form-checkbox"
+                           {% if form.is_active.value %}checked{% endif %}>
+                    <span>Active (can log in)</span>
+                </label>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary">
+                    {% if is_create %}Create User{% else %}Save Changes{% endif %}
+                </button>
+                <a href="{% url 'dashboard:admin_users' %}" class="btn btn-outline">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if edit_user %}
+<!-- User Info -->
+<section class="card" style="max-width: 600px; margin-top: 2rem;">
+    <div class="card-header">
+        <h2 class="card-title">User Information</h2>
+    </div>
+    <div class="card-body">
+        <div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="stat-card">
+                <p class="stat-card-label">Joined</p>
+                <p class="stat-card-value" style="font-size: 1rem;">{{ edit_user.date_joined|date:"M d, Y" }}</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-card-label">Last Login</p>
+                <p class="stat-card-value" style="font-size: 1rem;">
+                    {% if edit_user.last_login %}
+                        {{ edit_user.last_login|date:"M d, Y g:i A" }}
+                    {% else %}
+                        Never
+                    {% endif %}
+                </p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-card-label">Votes Cast</p>
+                <p class="stat-card-value">{{ edit_user.vote_receipts.count }}</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-card-label">Club Memberships</p>
+                <p class="stat-card-value">{{ edit_user.club_memberships.count }}</p>
+            </div>
+        </div>
+        
+        {% if edit_user.managed_club %}
+            <div class="alert alert-success" style="margin-top: 1rem;">
+                <p>
+                    <strong>Election Manager:</strong> 
+                    <a href="{% url 'dashboard:admin_club_edit' edit_user.managed_club.pk %}">
+                        {{ edit_user.managed_club.name }}
+                    </a>
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endif %}
+{% endblock %}

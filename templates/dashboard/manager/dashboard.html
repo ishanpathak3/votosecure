@@ -1,0 +1,121 @@
+{% extends 'dashboard/manager/base.html' %}
+
+{% block title %}Manager Dashboard - {{ club.name }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="page-header">
+    <h1 class="page-title">{{ club.name }} Dashboard</h1>
+    <p class="page-subtitle">Manage your club's elections and members</p>
+</div>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <p class="stat-card-label">Total Members</p>
+        <p class="stat-card-value">{{ member_count }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-card-label">Pending Requests</p>
+        <p class="stat-card-value" style="color: var(--warning);">{{ pending_requests }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-card-label">Total Elections</p>
+        <p class="stat-card-value">{{ total_elections }}</p>
+    </div>
+    <div class="stat-card">
+        <p class="stat-card-label">Active Elections</p>
+        <p class="stat-card-value" style="color: var(--success);">{{ active_elections }}</p>
+    </div>
+</div>
+
+<div class="card-grid" style="grid-template-columns: 1fr 1fr;">
+    <!-- Pending Memberships -->
+    <section class="card" aria-labelledby="pending-heading">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 id="pending-heading" class="card-title">
+                Pending Requests
+                {% if pending_memberships %}
+                    <span class="status-badge pending" style="margin-left: 0.5rem;">{{ pending_memberships.count }}</span>
+                {% endif %}
+            </h2>
+            <a href="{% url 'dashboard:manager_members' %}" class="btn btn-outline btn-sm">View All</a>
+        </div>
+        <div class="card-body">
+            {% if pending_memberships %}
+                <ul style="list-style: none;">
+                    {% for membership in pending_memberships %}
+                        <li style="padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>{{ membership.user.get_full_name|default:membership.user.username }}</strong>
+                                <p style="font-size: 0.875rem; color: var(--text-muted);">
+                                    {{ membership.user.email }}
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <form method="post" action="{% url 'dashboard:manager_membership_approve' membership.pk %}" style="margin: 0;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                                </form>
+                                <form method="post" action="{% url 'dashboard:manager_membership_reject' membership.pk %}" style="margin: 0;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Reject</button>
+                                </form>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p style="color: var(--text-muted); text-align: center; padding: 1rem 0;">
+                    No pending membership requests.
+                </p>
+            {% endif %}
+        </div>
+    </section>
+    
+    <!-- Recent Elections -->
+    <section class="card" aria-labelledby="elections-heading">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 id="elections-heading" class="card-title">Recent Elections</h2>
+            <a href="{% url 'dashboard:manager_elections' %}" class="btn btn-outline btn-sm">View All</a>
+        </div>
+        <div class="card-body">
+            {% if recent_elections %}
+                <ul style="list-style: none;">
+                    {% for election in recent_elections %}
+                        <li style="padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);">
+                            <a href="{% url 'dashboard:manager_election_edit' election.pk %}">
+                                <strong>{{ election.title }}</strong>
+                            </a>
+                            <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                {{ election.get_status_display }} • {{ election.vote_count }} votes
+                            </p>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p style="color: var(--text-muted); text-align: center; padding: 1rem 0;">
+                    No elections yet.
+                    <a href="{% url 'dashboard:manager_election_create' %}">Create your first election</a>
+                </p>
+            {% endif %}
+        </div>
+    </section>
+</div>
+
+<!-- Quick Actions -->
+<section class="card" style="margin-top: 2rem;" aria-labelledby="quick-actions-heading">
+    <div class="card-header">
+        <h2 id="quick-actions-heading" class="card-title">Quick Actions</h2>
+    </div>
+    <div class="card-body">
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <a href="{% url 'dashboard:manager_election_create' %}" class="btn btn-primary">
+                + Create Election
+            </a>
+            <a href="{% url 'dashboard:manager_members' %}" class="btn btn-secondary">
+                Manage Members
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

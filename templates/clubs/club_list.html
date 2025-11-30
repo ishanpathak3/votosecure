@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load club_tags %}
+
+{% block title %}Clubs - VotoSecure{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Clubs</h1>
+    <p class="page-subtitle">Browse and join clubs to participate in their elections</p>
+</div>
+
+<div class="card-grid">
+    {% for club in clubs %}
+        <article class="club-card">
+            <h2 class="club-card-title">{{ club.name }}</h2>
+            <p class="club-card-description">{{ club.description }}</p>
+            
+            <div class="club-card-stats">
+                <span class="club-card-stat">
+                    👥 {{ club.member_count }} member{{ club.member_count|pluralize }}
+                </span>
+                {% if club.manager %}
+                    <span class="club-card-stat">
+                        👤 {{ club.manager.username }}
+                    </span>
+                {% endif %}
+            </div>
+            
+            <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <a href="{% url 'clubs:club_detail' club.pk %}" 
+                   class="btn btn-outline btn-sm">
+                    View Details
+                </a>
+                
+                {% with status=user_memberships|default_if_none:""|dictsort:club.pk %}
+                    {% if club.pk in user_memberships %}
+                        {% if user_memberships|get_item:club.pk == 'approved' %}
+                            <span class="status-badge approved">✓ Member</span>
+                        {% elif user_memberships|get_item:club.pk == 'pending' %}
+                            <span class="status-badge pending">⏳ Pending</span>
+                        {% endif %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </article>
+    {% empty %}
+        <div class="alert alert-info" style="grid-column: 1 / -1;">
+            <p>No clubs are currently available.</p>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
