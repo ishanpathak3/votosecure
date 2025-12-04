@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import dj_database_url
 from pathlib import Path
 from django.contrib.messages import constants as messages
 import os
@@ -18,7 +19,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # For parsing DATABASE_URL
-import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,14 +28,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-this-in-production-votosecure-2025')
+SECRET_KEY = os.getenv(
+    'SECRET_KEY', 'django-insecure-change-this-in-production-votosecure-2025')
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['votosecure.onrender.com',
+                 'localhost',
+                 '127.0.0.1',
+                 '.onrender.com',
+                 ]  # Allow all Render subdomains]
 # Add any custom domain here
 # CUSTOM_HOST = os.getenv('CUSTOM_HOST')
 # if CUSTOM_HOST:
@@ -114,7 +119,6 @@ else:
     }
 
 
-
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
@@ -152,7 +156,7 @@ USE_TZ = False
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "static"), 
+    os.path.join(BASE_DIR, "static"),
 ]
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
