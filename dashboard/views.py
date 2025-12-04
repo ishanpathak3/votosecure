@@ -165,12 +165,12 @@ def admin_dashboard(request):
 
     recent_users = User.objects.order_by('-date_joined')[:5]
 
-    recent_logs = AuditLog.objects.select_related(
-        'user').order_by('-timestamp')[:10]
-    # SANITIZE: Clean any http:// URLs in audit logs
-    for log in recent_logs:
-        if log.object_repr and 'http://' in log.object_repr:
-            log.object_repr = log.object_repr.replace('http://', 'https://')
+    # recent_logs = AuditLog.objects.select_related(
+    #     'user').order_by('-timestamp')[:10]
+    # # SANITIZE: Clean any http:// URLs in audit logs
+    # for log in recent_logs:
+    #     if log.object_repr and 'http://' in log.object_repr:
+    #         log.object_repr = log.object_repr.replace('http://', 'https://')
     context = {
         'total_users': total_users,
         'total_clubs': total_clubs,
@@ -180,7 +180,7 @@ def admin_dashboard(request):
         'pending_memberships': pending_memberships,
         'recent_elections': recent_elections,
         'recent_users': recent_users,
-        'recent_logs': recent_logs,
+        # 'recent_logs': recent_logs,
     }
     return render(request, 'dashboard/admin/dashboard.html', context)
 
