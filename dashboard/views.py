@@ -58,7 +58,7 @@ class ClubManagerForm(forms.Form):
         empty_label="-- No Manager --",
         help_text="Select a user to be the Election Manager for this club."
     )
-    
+
     def __init__(self, *args, club=None, **kwargs):
         super().__init__(*args, **kwargs)
         if club:
@@ -87,15 +87,17 @@ class ElectionForm(forms.ModelForm):
                 format='%Y-%m-%dT%H:%M'
             ),
         }
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Make datetime inputs work properly
         if self.instance.pk:
             if self.instance.start_time:
-                self.initial['start_time'] = self.instance.start_time.strftime('%Y-%m-%dT%H:%M')
+                self.initial['start_time'] = self.instance.start_time.strftime(
+                    '%Y-%m-%dT%H:%M')
             if self.instance.end_time:
-                self.initial['end_time'] = self.instance.end_time.strftime('%Y-%m-%dT%H:%M')
+                self.initial['end_time'] = self.instance.end_time.strftime(
+                    '%Y-%m-%dT%H:%M')
 
 
 class CandidateForm(forms.ModelForm):
@@ -115,11 +117,11 @@ class UserForm(forms.ModelForm):
         required=False,
         help_text="Leave blank to keep current password (for editing)."
     )
-    
+
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name', 'is_active']
-    
+
     def save(self, commit=True):
         user = super().save(commit=False)
         password = self.cleaned_data.get('password')
@@ -141,7 +143,7 @@ def admin_dashboard(request):
     Main admin dashboard with overview statistics.
     """
     now = timezone.now()
-    
+
     # Statistics
     total_users = User.objects.filter(is_active=True).count()
     total_clubs = Club.objects.filter(is_active=True).count()
@@ -153,17 +155,22 @@ def admin_dashboard(request):
         ended_early=False
     ).count()
     total_votes = Vote.objects.count()
-    pending_memberships = ClubMembership.objects.filter(status='pending').count()
-    
+    pending_memberships = ClubMembership.objects.filter(
+        status='pending').count()
+
     # Recent activity
     recent_elections = Election.objects.select_related(
         'club', 'created_by'
     ).order_by('-created_at')[:5]
-    
+
     recent_users = User.objects.order_by('-date_joined')[:5]
-    
-    recent_logs = AuditLog.objects.select_related('user').order_by('-timestamp')[:10]
-    
+
+    recent_logs = AuditLog.objects.select_related(
+        'user').order_by('-timestamp')[:10]
+    # SANITIZE: Clean any http:// URLs in audit logs
+    for log in recent_logs:
+        if log.object_repr and 'http://' in log.object_repr:
+            log.object_repr = log.object_repr.replace('http://', 'https://')
     context = {
         'total_users': total_users,
         'total_clubs': total_clubs,
@@ -185,10 +192,11 @@ def admin_clubs(request):
     Admin view for managing clubs.
     """
     clubs = Club.objects.annotate(
-        member_count=Count('memberships', filter=Q(memberships__status='approved')),
+        member_count=Count('memberships', filter=Q(
+            memberships__status='approved')),
         election_count=Count('elections')
     ).select_related('manager').order_by('name')
-    
+
     context = {
         'clubs': clubs,
     }
@@ -207,19 +215,19 @@ def admin_club_create(request):
             club = form.save(commit=False)
             club.created_by = request.user
             club.save()
-            
+
             AuditLog.log(
                 user=request.user,
                 action='create',
                 obj=club,
                 details={'name': club.name}
             )
-            
+
             messages.success(request, f"Club '{club.name}' has been created.")
             return redirect('dashboard:admin_club_edit', pk=club.pk)
     else:
         form = ClubForm()
-    
+
     context = {
         'form': form,
         'title': 'Create Club',
@@ -234,7 +242,7 @@ def admin_club_edit(request, pk):
     Edit a club and assign manager.
     """
     club = get_object_or_404(Club, pk=pk)
-    
+
     if request.method == 'POST':
         if 'save_club' in request.POST:
             form = ClubForm(request.POST, instance=club)
@@ -247,19 +255,20 @@ def admin_club_edit(request, pk):
                     obj=club,
                     details={'name': club.name}
                 )
-                messages.success(request, f"Club '{club.name}' has been updated.")
+                messages.success(
+                    request, f"Club '{club.name}' has been updated.")
                 return redirect('dashboard:admin_clubs')
-        
+
         elif 'assign_manager' in request.POST:
             form = ClubForm(instance=club)
             manager_form = ClubManagerForm(request.POST, club=club)
             if manager_form.is_valid():
                 old_manager = club.manager
                 new_manager = manager_form.cleaned_data['manager']
-                
+
                 club.manager = new_manager
                 club.save()
-                
+
                 if old_manager != new_manager:
                     action = 'manager_assign' if new_manager else 'manager_remove'
                     AuditLog.log(
@@ -271,19 +280,21 @@ def admin_club_edit(request, pk):
                             'new_manager': str(new_manager) if new_manager else None
                         }
                     )
-                
+
                 if new_manager:
                     messages.success(
-                        request, 
+                        request,
                         f"{new_manager.username} is now the manager of {club.name}."
                     )
                 else:
-                    messages.success(request, f"Manager removed from {club.name}.")
+                    messages.success(
+                        request, f"Manager removed from {club.name}.")
                 return redirect('dashboard:admin_club_edit', pk=pk)
     else:
         form = ClubForm(instance=club)
-        manager_form = ClubManagerForm(club=club, initial={'manager': club.manager})
-    
+        manager_form = ClubManagerForm(
+            club=club, initial={'manager': club.manager})
+
     context = {
         'form': form,
         'manager_form': manager_form,
@@ -300,7 +311,7 @@ def admin_club_delete(request, pk):
     Delete a club.
     """
     club = get_object_or_404(Club, pk=pk)
-    
+
     if request.method == 'POST':
         name = club.name
         AuditLog.log(
@@ -312,7 +323,7 @@ def admin_club_delete(request, pk):
         club.delete()
         messages.success(request, f"Club '{name}' has been deleted.")
         return redirect('dashboard:admin_clubs')
-    
+
     context = {
         'club': club,
     }
@@ -330,14 +341,14 @@ def admin_elections(request):
     ).annotate(
         vote_count=Count('votes')
     ).order_by('-created_at')
-    
+
     # Filter options
     filter_type = request.GET.get('type', 'all')
     if filter_type == 'global':
         elections = elections.filter(club__isnull=True)
     elif filter_type == 'club':
         elections = elections.filter(club__isnull=False)
-    
+
     context = {
         'elections': elections,
         'filter_type': filter_type,
@@ -358,23 +369,23 @@ def admin_election_create(request):
             election.created_by = request.user
             election.club = None  # Global election
             election.save()
-            
+
             AuditLog.log(
                 user=request.user,
                 action='create',
                 obj=election,
                 details={'title': election.title, 'type': 'global'}
             )
-            
+
             messages.success(
-                request, 
+                request,
                 f"Global election '{election.title}' has been created. "
                 "Now add candidates."
             )
             return redirect('dashboard:admin_election_edit', pk=election.pk)
     else:
         form = ElectionForm()
-    
+
     context = {
         'form': form,
         'title': 'Create Global Election',
@@ -390,7 +401,7 @@ def admin_election_edit(request, pk):
     """
     election = get_object_or_404(Election, pk=pk)
     candidates = election.candidates.all()
-    
+
     if request.method == 'POST':
         form = ElectionForm(request.POST, instance=election)
         if form.is_valid():
@@ -401,13 +412,14 @@ def admin_election_edit(request, pk):
                 obj=election,
                 details={'title': election.title}
             )
-            messages.success(request, f"Election '{election.title}' has been updated.")
+            messages.success(
+                request, f"Election '{election.title}' has been updated.")
             return redirect('dashboard:admin_elections')
     else:
         form = ElectionForm(instance=election)
-    
+
     candidate_form = CandidateForm()
-    
+
     context = {
         'form': form,
         'candidate_form': candidate_form,
@@ -425,7 +437,7 @@ def admin_election_delete(request, pk):
     Delete an election.
     """
     election = get_object_or_404(Election, pk=pk)
-    
+
     if request.method == 'POST':
         title = election.title
         AuditLog.log(
@@ -437,7 +449,7 @@ def admin_election_delete(request, pk):
         election.delete()
         messages.success(request, f"Election '{title}' has been deleted.")
         return redirect('dashboard:admin_elections')
-    
+
     context = {
         'election': election,
     }
@@ -451,21 +463,22 @@ def admin_election_end_early(request, pk):
     End an election early.
     """
     election = get_object_or_404(Election, pk=pk)
-    
+
     if request.method == 'POST':
         reason = request.POST.get('reason', '')
         election.end_early(request.user, reason)
-        
+
         AuditLog.log(
             user=request.user,
             action='election_end_early',
             obj=election,
             details={'reason': reason}
         )
-        
-        messages.success(request, f"Election '{election.title}' has been ended early.")
+
+        messages.success(
+            request, f"Election '{election.title}' has been ended early.")
         return redirect('dashboard:admin_elections')
-    
+
     context = {
         'election': election,
     }
@@ -479,16 +492,17 @@ def admin_candidate_add(request, election_pk):
     Add a candidate to an election.
     """
     election = get_object_or_404(Election, pk=election_pk)
-    
+
     if request.method == 'POST':
         form = CandidateForm(request.POST)
         if form.is_valid():
             candidate = form.save(commit=False)
             candidate.election = election
             candidate.save()
-            messages.success(request, f"Candidate '{candidate.name}' has been added.")
+            messages.success(
+                request, f"Candidate '{candidate.name}' has been added.")
             return redirect('dashboard:admin_election_edit', pk=election_pk)
-    
+
     return redirect('dashboard:admin_election_edit', pk=election_pk)
 
 
@@ -499,20 +513,21 @@ def admin_candidate_delete(request, election_pk, candidate_pk):
     Delete a candidate from an election.
     """
     election = get_object_or_404(Election, pk=election_pk)
-    candidate = get_object_or_404(Candidate, pk=candidate_pk, election=election)
-    
+    candidate = get_object_or_404(
+        Candidate, pk=candidate_pk, election=election)
+
     if request.method == 'POST':
         # Don't allow deleting candidates from active elections with votes
         if election.is_active() and candidate.votes.exists():
             messages.error(
-                request, 
+                request,
                 "Cannot delete a candidate who has received votes in an active election."
             )
         else:
             name = candidate.name
             candidate.delete()
             messages.success(request, f"Candidate '{name}' has been removed.")
-    
+
     return redirect('dashboard:admin_election_edit', pk=election_pk)
 
 
@@ -525,7 +540,7 @@ def admin_users(request):
     users = User.objects.annotate(
         vote_count=Count('vote_receipts')
     ).order_by('-date_joined')
-    
+
     # Search
     search = request.GET.get('search', '')
     if search:
@@ -535,7 +550,7 @@ def admin_users(request):
             Q(first_name__icontains=search) |
             Q(last_name__icontains=search)
         )
-    
+
     context = {
         'users': users,
         'search': search,
@@ -563,19 +578,20 @@ def admin_user_create(request):
                     'title': 'Create User'
                 })
             user.save()
-            
+
             AuditLog.log(
                 user=request.user,
                 action='create',
                 obj=user,
                 details={'username': user.username}
             )
-            
-            messages.success(request, f"User '{user.username}' has been created.")
+
+            messages.success(
+                request, f"User '{user.username}' has been created.")
             return redirect('dashboard:admin_users')
     else:
         form = UserForm()
-    
+
     context = {
         'form': form,
         'title': 'Create User',
@@ -591,7 +607,7 @@ def admin_user_edit(request, pk):
     Edit a user.
     """
     user = get_object_or_404(User, pk=pk)
-    
+
     if request.method == 'POST':
         form = UserForm(request.POST, instance=user)
         if form.is_valid():
@@ -602,11 +618,12 @@ def admin_user_edit(request, pk):
                 obj=user,
                 details={'username': user.username}
             )
-            messages.success(request, f"User '{user.username}' has been updated.")
+            messages.success(
+                request, f"User '{user.username}' has been updated.")
             return redirect('dashboard:admin_users')
     else:
         form = UserForm(instance=user)
-    
+
     context = {
         'form': form,
         'edit_user': user,
@@ -628,7 +645,7 @@ def manager_dashboard(request):
     """
     club = request.user.managed_club
     now = timezone.now()
-    
+
     # Statistics
     member_count = club.get_member_count()
     pending_requests = club.get_pending_requests_count()
@@ -639,18 +656,18 @@ def manager_dashboard(request):
         end_time__gte=now,
         ended_early=False
     ).count()
-    
+
     # Recent elections
     recent_elections = club.elections.annotate(
         vote_count=Count('votes')
     ).order_by('-created_at')[:5]
-    
+
     # Pending membership requests
     pending_memberships = ClubMembership.objects.filter(
         club=club,
         status='pending'
     ).select_related('user').order_by('requested_at')[:5]
-    
+
     context = {
         'club': club,
         'member_count': member_count,
@@ -670,23 +687,23 @@ def manager_members(request):
     Manage club membership requests.
     """
     club = request.user.managed_club
-    
+
     # Get all memberships
     pending = ClubMembership.objects.filter(
         club=club,
         status='pending'
     ).select_related('user').order_by('requested_at')
-    
+
     approved = ClubMembership.objects.filter(
         club=club,
         status='approved'
     ).select_related('user').order_by('user__username')
-    
+
     rejected = ClubMembership.objects.filter(
         club=club,
         status='rejected'
     ).select_related('user').order_by('-reviewed_at')[:20]
-    
+
     context = {
         'club': club,
         'pending': pending,
@@ -709,10 +726,10 @@ def manager_membership_approve(request, pk):
         club=club,
         status='pending'
     )
-    
+
     if request.method == 'POST':
         membership.approve(request.user)
-        
+
         AuditLog.log(
             user=request.user,
             action='membership_approve',
@@ -722,12 +739,12 @@ def manager_membership_approve(request, pk):
                 'club': club.name
             }
         )
-        
+
         messages.success(
             request,
             f"{membership.user.username} has been approved as a member."
         )
-    
+
     return redirect('dashboard:manager_members')
 
 
@@ -744,11 +761,11 @@ def manager_membership_reject(request, pk):
         club=club,
         status='pending'
     )
-    
+
     if request.method == 'POST':
         note = request.POST.get('note', '')
         membership.reject(request.user, note)
-        
+
         AuditLog.log(
             user=request.user,
             action='membership_reject',
@@ -759,12 +776,12 @@ def manager_membership_reject(request, pk):
                 'note': note
             }
         )
-        
+
         messages.success(
             request,
             f"{membership.user.username}'s request has been rejected."
         )
-    
+
     return redirect('dashboard:manager_members')
 
 
@@ -781,12 +798,13 @@ def manager_membership_remove(request, pk):
         club=club,
         status='approved'
     )
-    
+
     if request.method == 'POST':
         username = membership.user.username
         membership.delete()
-        messages.success(request, f"{username} has been removed from the club.")
-    
+        messages.success(
+            request, f"{username} has been removed from the club.")
+
     return redirect('dashboard:manager_members')
 
 
@@ -797,11 +815,11 @@ def manager_elections(request):
     Manage club elections.
     """
     club = request.user.managed_club
-    
+
     elections = club.elections.annotate(
         vote_count=Count('votes')
     ).order_by('-created_at')
-    
+
     context = {
         'club': club,
         'elections': elections,
@@ -816,7 +834,7 @@ def manager_election_create(request):
     Create a new club election.
     """
     club = request.user.managed_club
-    
+
     if request.method == 'POST':
         form = ElectionForm(request.POST)
         if form.is_valid():
@@ -824,14 +842,14 @@ def manager_election_create(request):
             election.created_by = request.user
             election.club = club
             election.save()
-            
+
             AuditLog.log(
                 user=request.user,
                 action='create',
                 obj=election,
                 details={'title': election.title, 'club': club.name}
             )
-            
+
             messages.success(
                 request,
                 f"Election '{election.title}' has been created. Now add candidates."
@@ -839,7 +857,7 @@ def manager_election_create(request):
             return redirect('dashboard:manager_election_edit', pk=election.pk)
     else:
         form = ElectionForm()
-    
+
     context = {
         'form': form,
         'club': club,
@@ -857,7 +875,7 @@ def manager_election_edit(request, pk):
     club = request.user.managed_club
     election = get_object_or_404(Election, pk=pk, club=club)
     candidates = election.candidates.all()
-    
+
     if request.method == 'POST':
         form = ElectionForm(request.POST, instance=election)
         if form.is_valid():
@@ -868,13 +886,14 @@ def manager_election_edit(request, pk):
                 obj=election,
                 details={'title': election.title}
             )
-            messages.success(request, f"Election '{election.title}' has been updated.")
+            messages.success(
+                request, f"Election '{election.title}' has been updated.")
             return redirect('dashboard:manager_elections')
     else:
         form = ElectionForm(instance=election)
-    
+
     candidate_form = CandidateForm()
-    
+
     context = {
         'form': form,
         'candidate_form': candidate_form,
@@ -894,7 +913,7 @@ def manager_election_delete(request, pk):
     """
     club = request.user.managed_club
     election = get_object_or_404(Election, pk=pk, club=club)
-    
+
     if request.method == 'POST':
         title = election.title
         AuditLog.log(
@@ -906,7 +925,7 @@ def manager_election_delete(request, pk):
         election.delete()
         messages.success(request, f"Election '{title}' has been deleted.")
         return redirect('dashboard:manager_elections')
-    
+
     context = {
         'election': election,
         'club': club,
@@ -922,21 +941,22 @@ def manager_election_end_early(request, pk):
     """
     club = request.user.managed_club
     election = get_object_or_404(Election, pk=pk, club=club)
-    
+
     if request.method == 'POST':
         reason = request.POST.get('reason', '')
         election.end_early(request.user, reason)
-        
+
         AuditLog.log(
             user=request.user,
             action='election_end_early',
             obj=election,
             details={'reason': reason, 'club': club.name}
         )
-        
-        messages.success(request, f"Election '{election.title}' has been ended early.")
+
+        messages.success(
+            request, f"Election '{election.title}' has been ended early.")
         return redirect('dashboard:manager_elections')
-    
+
     context = {
         'election': election,
         'club': club,
@@ -952,15 +972,16 @@ def manager_candidate_add(request, election_pk):
     """
     club = request.user.managed_club
     election = get_object_or_404(Election, pk=election_pk, club=club)
-    
+
     if request.method == 'POST':
         form = CandidateForm(request.POST)
         if form.is_valid():
             candidate = form.save(commit=False)
             candidate.election = election
             candidate.save()
-            messages.success(request, f"Candidate '{candidate.name}' has been added.")
-    
+            messages.success(
+                request, f"Candidate '{candidate.name}' has been added.")
+
     return redirect('dashboard:manager_election_edit', pk=election_pk)
 
 
@@ -972,8 +993,9 @@ def manager_candidate_delete(request, election_pk, candidate_pk):
     """
     club = request.user.managed_club
     election = get_object_or_404(Election, pk=election_pk, club=club)
-    candidate = get_object_or_404(Candidate, pk=candidate_pk, election=election)
-    
+    candidate = get_object_or_404(
+        Candidate, pk=candidate_pk, election=election)
+
     if request.method == 'POST':
         if election.is_active() and candidate.votes.exists():
             messages.error(
@@ -984,5 +1006,5 @@ def manager_candidate_delete(request, election_pk, candidate_pk):
             name = candidate.name
             candidate.delete()
             messages.success(request, f"Candidate '{name}' has been removed.")
-    
+
     return redirect('dashboard:manager_election_edit', pk=election_pk)
